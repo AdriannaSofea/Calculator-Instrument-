@@ -1,0 +1,482 @@
+import customtkinter as ctk
+import tkinter.messagebox as messagebox
+from PIL import Image
+import math
+import os, sys
+
+# === Helper: Resource Path ===
+def resource_path(relative_path):
+    """Get absolute path to resource (for .py and PyInstaller .exe)."""
+    try:
+        base_path = sys._MEIPASS  # Temporary folder used by PyInstaller
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# === Appearance ===
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("green")
+
+# === PAGE SWITCHING HANDLER ===
+def show_home_page():
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_home_page()
+
+def show_reservoir_page():
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_reservoir_page()
+
+def show_mass_flowrate_page():
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_mass_flowrate_page()
+
+def show_dp_level_page():
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_dp_level_page()
+
+# === MAIN WINDOW ===
+root = ctk.CTk()
+root.title("Instrument Calculator")
+root.geometry("950x950")
+root.iconbitmap(resource_path("icon.ico"))
+
+
+# === HOME PAGE ===
+def create_home_page():
+    home_frame = ctk.CTkFrame(root, fg_color="transparent")
+    home_frame.pack(expand=True, fill="both")
+
+    try:
+        logo = ctk.CTkImage(light_image=Image.open(resource_path("petronas (1).jpg")), size=(70, 110))
+        ctk.CTkLabel(home_frame, image=logo, text="").pack(pady=(60, 10))
+    except Exception as e:
+        print("⚠ Logo not found:", e)
+
+    ctk.CTkLabel(
+        home_frame,
+        text="Instrument Calculator",
+        font=ctk.CTkFont(size=28, weight="bold"),
+        text_color="#00A19B"
+    ).pack(pady=(0, 40))
+
+    buttons = [
+        ("Reservoir Sizing Calculator", show_reservoir_page),
+        ("Mass Flowrate Calculator", show_mass_flowrate_page),
+        ("DP Level Calculator", show_dp_level_page)
+    ]
+
+    for text, cmd in buttons:
+        ctk.CTkButton(
+            home_frame,
+            text=text,
+            command=cmd,
+            fg_color="#00b38f",
+            hover_color="#00e6b8",
+            width=280,
+            height=60,
+            corner_radius=12,
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=15)
+
+# === RESERVOIR CALCULATOR ===
+def create_reservoir_page():
+    entry_values = {}
+
+    def calculate():
+        try:
+            # === Get all input values ===
+            ASV = float(entry_values["Total Actuator Swept Volume\n(avg per valve, litres)"].get())
+            NV = float(entry_values["Total Number of Valves"].get())
+            TV = float(entry_values["Total Tubing Volume\n(per Wellhead, litres)"].get())
+            WH = float(entry_values["Number of Wellheads (WH)"].get())
+            Vhdhsv = float(entry_values["Vhdhsv (litres)"].get())
+            Vcdhsv = float(entry_values["Total Volume to Charge\nAccumulators (Vcdhsv, litres)"].get())
+            J = float(entry_values["Safety Factor (J)"].get())
+
+            # === Perform Calculations ===
+            C = ASV * NV
+            Vt = TV * WH
+            E = Vt + Vhdhsv
+            F = Vcdhsv
+            Vr = (C + E + F) * J
+
+            # === Display Result ===
+            result_label.configure(
+                text=(
+                    f"C = {C:.3f} L (Total actuator swept volume)\n"
+                    f"Vt = {Vt:.3f} L (Tubing volume for all WH)\n"
+                    f"E = {E:.3f} L (Vt + Vhdhsv)\n"
+                    f"F = {F:.3f} L (Accumulator charge volume)\n"
+                    f"Safety Factor (J) = {J:.3f}\n\n"
+                    f"Reservoir Volume (Vr) = {Vr:.3f} L"
+                ),
+                text_color="#00ffcc"
+            )
+
+        except ValueError:
+            result_label.configure(text="⚠ Please enter valid numeric values for all inputs.", text_color="orange")
+        except Exception as e:
+            result_label.configure(text=f"⚠ Unexpected error: {e}", text_color="red")
+
+    # === Layout ===
+    top_frame = ctk.CTkFrame(root, fg_color="transparent")
+    top_frame.pack(pady=15)
+
+    try:
+        petronas_logo = ctk.CTkImage(light_image=Image.open(resource_path("petronas (1).jpg")), size=(60, 95))
+        ctk.CTkLabel(top_frame, image=petronas_logo, text="").pack(side="left", padx=10)
+    except Exception:
+        pass
+
+    ctk.CTkLabel(top_frame, text="Permanent WHCP DHSV Reservoir Calculator",
+                 font=ctk.CTkFont(size=24, weight="bold"), text_color="#00A19B").pack(side="left", padx=20)
+    ctk.CTkButton(top_frame, text="← Back", command=show_home_page, fg_color="#333", hover_color="#555",
+                  width=100, height=35, corner_radius=8).pack(side="right", padx=20)
+
+    frame = ctk.CTkScrollableFrame(root, width=700, height=700)
+    frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+    try:
+        img = ctk.CTkImage(light_image=Image.open(resource_path("ReservoirSizing.jpg")), size=(400, 200))
+        ctk.CTkLabel(frame, image=img, text="").pack(pady=(10, 20))
+    except Exception:
+        pass
+
+    ctk.CTkLabel(frame, text="Vr = ( C + E + F ) * J",
+                 font=ctk.CTkFont(size=20, weight="bold"), text_color="#00A19B").pack(pady=(5, 15))
+
+    ctk.CTkLabel(
+        frame,
+        text="C = Total Actuator Swept Volume (Average per valve) × Total Number of Valves\n\n"
+             "E = (Total Tubing Volume per Wellhead × Number of Wellheads (WH)) + Vhdhsv\n\n"
+             "F = Total Volume to Charge Accumulators (Vcdhsv)\n\n"
+             "J = Safety Factor",
+        font=ctk.CTkFont(size=11),
+        text_color="#cccccc",
+        justify="center"
+    ).pack(pady=(0, 15), padx=10, anchor="center")
+
+    def create_card(parent, title, fields):
+        card = ctk.CTkFrame(parent, fg_color="#1c1c1c", corner_radius=15, height=340)
+        card.pack(padx=10, pady=12, fill="x", ipady=15)
+        card.pack_propagate(False)  # keep fixed height
+
+        ctk.CTkLabel(
+            card,
+            text=f"{title}",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="#00A19B"
+        ).grid(row=0, column=0, columnspan=4, pady=(10, 8))
+
+        for i in range(4):
+            card.grid_columnconfigure(i, weight=1, uniform="col")
+
+        for i, field in enumerate(fields):
+            row = (i // 2) + 1
+            col = (i % 2) * 2
+
+            label = ctk.CTkLabel(
+                card,
+                text=f"{field}:",
+                font=ctk.CTkFont(size=13),
+                width=240,
+                anchor="w",
+                justify="left",
+                text_color="#f0f0f0"
+            )
+            label.grid(row=row, column=col, padx=(20, 5), pady=8, sticky="w")
+
+            entry = ctk.CTkEntry(card, width=180, corner_radius=8)
+            entry.grid(row=row, column=col + 1, padx=(5, 20), pady=8, sticky="w")
+
+            entry_values[field] = entry
+
+    input_fields = [
+        "Total Actuator Swept Volume\n(avg per valve, litres)",
+        "Total Number of Valves",
+        "Total Tubing Volume\n(per Wellhead, litres)",
+        "Number of Wellheads (WH)",
+        "Vhdhsv (litres)",
+        "Total Volume to Charge\nAccumulators (Vcdhsv, litres)",
+        "Safety Factor (J)"
+    ]
+    create_card(frame, "Reservoir Sizing Inputs", input_fields)
+
+    result_label = ctk.CTkLabel(frame, text="", font=ctk.CTkFont(size=16, weight="bold"), text_color="#00ffcc")
+    result_label.pack(pady=(20, 5))
+
+    ctk.CTkButton(frame, text="Calculate", fg_color="#00b38f", hover_color="#00e6b8",
+                  width=250, height=50, command=calculate).pack(pady=25)
+
+# === MASS FLOWRATE CALCULATOR ===
+def create_mass_flowrate_page():
+    entry_values = {}
+
+    def calculate():
+        try:
+            DP = float(entry_values["Differential Pressure (Pa)"].get())
+            LP = float(entry_values["Line Pressure (Pa)"].get())
+            LT = float(entry_values["Line Temperature (°C)"].get())
+            LD = float(entry_values["Line Density (kg/m³)"].get())
+            IE = float(entry_values["Isentropic Exponent"].get())
+            PD = float(entry_values["Pipe Diameter (kg/m³)"].get())
+            PRT = float(entry_values["Pipe Reference\nTemperature (°C)"].get())
+            PE = float(entry_values["Pipe Expansion"].get())
+            TD = float(entry_values["Bore Diameter (kg/m³)"].get())
+            TRT = float(entry_values["Bore Reference\nTemperature (°C)"].get())
+            TE = float(entry_values["Bore Expansion"].get())
+            DC = float(entry_values["Discharge Coefficient"].get())
+
+            # Protect against invalid ratio / division by zero
+            num1 = TD * (1 + TE * (LT - TRT))
+            den1 = PD * (1 + PE * (LT - PRT))
+            if den1 == 0:
+                raise ZeroDivisionError("Pipe geometry gives division by zero")
+
+            ratio = num1 / den1
+            term1 = LP / (LP - DP / 1000)
+            if term1 <= 0 or (1 - (ratio ** 4)) <= 0:
+                raise ValueError("Inputs lead to invalid math domain for sqrt/log")
+
+            F1 = DC / math.sqrt(1 - (ratio ** 4))
+            A = (IE * (term1 ** (2 / IE))) / (IE - 1)
+            B = (1 - (ratio ** 4)) / (1 - (ratio ** 4) * (term1 ** (2 / IE)))
+            C = (1 - (term1 ** ((IE - 1) / IE))) / (1 - term1)
+            F2 = math.sqrt(A * B * C)
+            F3 = math.pi / 4 * ((num1 / 1000) ** 2)
+            F4 = math.sqrt(2 * (DP * 100) * LD)
+            Result = F1 * F2 * F3 * F4
+
+            result_label.configure(text=f"Final Result = {Result:.6f} kg/s", text_color="#00ffcc")
+        except ValueError as ve:
+            result_label.configure(text=f"⚠ Input error: {ve}", text_color="orange")
+        except ZeroDivisionError:
+            result_label.configure(text="⚠ Division by zero encountered. Check your inputs.", text_color="orange")
+        except Exception as e:
+            result_label.configure(text=f"⚠ Unexpected error: {e}", text_color="red")
+
+    # === Layout ===
+    top_frame = ctk.CTkFrame(root, fg_color="transparent")
+    top_frame.pack(pady=15)
+    try:
+        petronas_logo = ctk.CTkImage(light_image=Image.open(resource_path("petronas (1).jpg")), size=(60, 95))
+        ctk.CTkLabel(top_frame, image=petronas_logo, text="").pack(side="left", padx=10)
+    except Exception as e:
+        print("⚠ PETRONAS logo not found:", e)
+
+    ctk.CTkLabel(top_frame, text="Mass Flowrate Calculator", font=ctk.CTkFont(size=26, weight="bold"),
+                 text_color="#00A19B").pack(side="left", padx=20)
+    ctk.CTkButton(top_frame, text="← Back", command=show_home_page, fg_color="#333", hover_color="#555",
+                  width=100, height=35, corner_radius=8).pack(side="right", padx=20)
+
+    scrollable_frame = ctk.CTkScrollableFrame(root, width=700, height=750)
+    scrollable_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+    try:
+        flow_image = ctk.CTkImage(light_image=Image.open(resource_path("Mass Flowrate.png")), size=(400, 220))
+        ctk.CTkLabel(scrollable_frame, image=flow_image, text="").pack(pady=(10, 20))
+    except Exception as e:
+        print("⚠ Mass Flowrate image not found:", e)
+
+    ctk.CTkLabel(scrollable_frame, text="Enter all required values below",
+                 font=ctk.CTkFont(size=14), text_color="#cccccc").pack(pady=(5, 15))
+
+    def create_card(parent, title, fields):
+        card = ctk.CTkFrame(parent, fg_color="#1c1c1c", corner_radius=15)
+        card.pack(padx=10, pady=12, fill="x")
+        ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=16, weight="bold"),
+                     text_color="#00A19B").grid(row=0, column=0, columnspan=4, pady=(10, 8))
+        for i in range(4):
+            card.grid_columnconfigure(i, weight=1, uniform="col")
+        for i, field in enumerate(fields):
+            row = (i // 2) + 1
+            col = (i % 2) * 2
+            label = ctk.CTkLabel(card, text=f"{field}:", font=ctk.CTkFont(size=13),
+                                 width=180, anchor="w", justify="left", text_color="#f0f0f0")
+            label.grid(row=row, column=col, padx=(20, 5), pady=6, sticky="w")
+            entry = ctk.CTkEntry(card, width=150, corner_radius=8)
+            entry.grid(row=row, column=col + 1, padx=(5, 20), pady=6, sticky="w")
+            entry_values[field] = entry
+
+    line_fields = [
+        "Differential Pressure (Pa)",
+        "Line Pressure (Pa)",
+        "Line Temperature (°C)",
+        "Line Density (kg/m³)",
+        "Isentropic Exponent"
+    ]
+    pipe_fields = [
+        "Pipe Diameter (kg/m³)",
+        "Pipe Reference\nTemperature (°C)",
+        "Pipe Expansion"
+    ]
+    bore_fields = [
+        "Bore Diameter (kg/m³)",
+        "Bore Reference\nTemperature (°C)",
+        "Bore Expansion",
+        "Discharge Coefficient"
+    ]
+
+    create_card(scrollable_frame, "Line Data", line_fields)
+    create_card(scrollable_frame, "Pipe Data", pipe_fields)
+    create_card(scrollable_frame, "Bore Data", bore_fields)
+
+    result_label = ctk.CTkLabel(scrollable_frame, text="", font=ctk.CTkFont(size=16, weight="bold"),
+                                text_color="#00ffcc")
+    result_label.pack(pady=(20, 5))
+
+    ctk.CTkButton(scrollable_frame, text="Calculate", command=calculate,
+                  fg_color="#00b38f", hover_color="#00e6b8",
+                  width=250, height=50, corner_radius=12,
+                  font=ctk.CTkFont(size=16, weight="bold")).pack(pady=25)
+
+    ctk.CTkLabel(scrollable_frame, text="Flow Calculator © 2025 | Developed by Adrianna",
+                 text_color="#777777", font=ctk.CTkFont(size=11)).pack(pady=10)
+
+# === DP LEVEL CALCULATOR ===
+def create_dp_level_page():
+    entry_values = {}
+
+    def safe_float(entry):
+        val = entry.get().strip()
+        return float(val) if val != "" else None
+
+    def calculate():
+        SG1 = safe_float(entry_values["SG1"])
+        SG2 = safe_float(entry_values["SG2"])
+        SG3 = safe_float(entry_values["SG3"])
+        X = safe_float(entry_values["X (mm)"])
+        Y = safe_float(entry_values["Y (mm)"])
+        Z = safe_float(entry_values["Z (mm)"])
+        DP_value = safe_float(entry_values["DP Value (mbar)"])
+        Level_input = safe_float(entry_values["Level (%)"])
+
+        LRV = URV = mbar1 = mbar2 = Level = DP_calc_from_level = Span_mmH2O = Span_mbar = None
+        R23 = R24 = T23 = T24 = None
+
+        # Only compute LRV/URV when those required inputs are not None
+        if SG1 is not None and SG2 is not None and SG3 is not None and X is not None and Y is not None and Z is not None:
+            LRV = (SG1 * 0) + (SG3 * X) - (SG2 * Y)
+            mbar1 = LRV * 0.0980638
+            URV = (SG1 * Z) + (SG3 * X) - (SG2 * Y)
+            mbar2 = URV * 0.0980638
+
+        # Compute Level from DP if DP_value and LRV/URV exist
+        if DP_value is not None and mbar1 is not None and mbar2 is not None and (mbar2 - mbar1) != 0:
+            Level = ((DP_value - mbar1) / (mbar2 - mbar1)) * 100
+
+        # Compute DP from Level input if Level_input provided and spans exist
+        if Level_input is not None and mbar1 is not None and mbar2 is not None:
+            DP_calc_from_level = ((Level_input * (mbar2 - mbar1)) / 100) + mbar1
+
+        if LRV is not None and URV is not None and mbar1 is not None and mbar2 is not None:
+            Span_mmH2O = URV - LRV
+            Span_mbar = mbar2 - mbar1
+
+            R23 = mbar1 - (mbar1 * 0.25)
+            T23 = mbar2 + (mbar2 * 0.25)
+            R24 = abs(mbar2) - (abs(mbar2) * 0.25)
+            T24 = abs(mbar1) * 1.25
+
+        result_text1 = ""
+        if LRV is not None and URV is not None:
+            result_text1 += f"LRV = {LRV:.2f} mmH2O ({mbar1:.3f} mbar)\n"
+            result_text1 += f"URV = {URV:.2f} mmH2O ({mbar2:.3f} mbar)\n"
+
+        result_text2 = ""
+        if Level is not None:
+            result_text2 += f"Level (from DP) = {Level:.2f} %\n"
+        if DP_calc_from_level is not None:
+            result_text2 += f"DP (from Level input) = {DP_calc_from_level:.3f} mbar\n"
+
+        result_text3 = ""
+        if Span_mmH2O is not None and Span_mbar is not None:
+            result_text3 += f"Span = {Span_mmH2O:.2f} mmH2O ({Span_mbar:.3f} mbar)\n"
+
+        result_text4 = ""
+        if R23 is not None and T23 is not None and R24 is not None and T24 is not None:
+            low = R23 if T23 > T24 else R24
+            high = T23 if T23 > T24 else T24
+            result_text4 += f"Suitable TX range: {low:.3f} to {high:.3f} mbar"
+
+        result_label1.configure(text=result_text1, text_color="#00ffcc")
+        result_label2.configure(text=result_text2, text_color="#00ffcc")
+        result_label3.configure(text=result_text3, text_color="#00ffcc")
+        result_label4.configure(text=result_text4, text_color="#00ffcc")
+
+    # === Layout ===
+    top_frame = ctk.CTkFrame(root, fg_color="transparent")
+    top_frame.pack(pady=15)
+
+    try:
+        petronas_logo = ctk.CTkImage(light_image=Image.open(resource_path("petronas (1).jpg")), size=(60, 95))
+        ctk.CTkLabel(top_frame, image=petronas_logo, text="").pack(side="left", padx=10)
+    except Exception as e:
+        print("⚠ PETRONAS logo not found:", e)
+
+    ctk.CTkLabel(top_frame, text="DP Level Calculator",
+                 font=ctk.CTkFont(size=24, weight="bold"), text_color="#00A19B").pack(side="left", padx=20)
+    ctk.CTkButton(top_frame, text="← Back", command=show_home_page,
+                  fg_color="#333", hover_color="#555", width=100, height=35,
+                  corner_radius=8).pack(side="right", padx=20)
+
+    scrollable_frame = ctk.CTkScrollableFrame(root, width=700, height=700)
+    scrollable_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+    # === Formula image + equations ===
+    try:
+        formula_img = ctk.CTkImage(light_image=Image.open(resource_path("logo.png")), size=(280, 210))
+        ctk.CTkLabel(scrollable_frame, image=formula_img, text="").pack(pady=(10, 5))
+    except Exception as e:
+        print(f"⚠ Formula image not found: {e}")
+
+    ctk.CTkLabel(scrollable_frame, text="LRV = (SG3 * X - SG2 * Y)\nURV = (SG1 * Z + SG3 * X - SG2 * Y)",
+                 font=ctk.CTkFont(size=13), text_color="#cccccc").pack(pady=(5, 15))
+
+    def create_card(parent, title, fields):
+        card = ctk.CTkFrame(parent, fg_color="#1c1c1c", corner_radius=15, height=320)
+        card.pack(padx=10, pady=12, fill="x", ipady=15)
+        card.pack_propagate(False)
+
+        ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=16, weight="bold"), text_color="#00A19B")\
+            .grid(row=0, column=0, columnspan=4, pady=(10,8))
+
+        for i in range(4):
+            card.grid_columnconfigure(i, weight=1, uniform="col")
+
+        for i, field in enumerate(fields):
+            row = (i // 2) + 1
+            col = (i % 2) * 2
+            ctk.CTkLabel(card, text=f"{field}:", font=ctk.CTkFont(size=13),
+                         width=240, anchor="w", text_color="#f0f0f0").grid(row=row, column=col, padx=(20,5), pady=8, sticky="w")
+            entry = ctk.CTkEntry(card, width=180, corner_radius=8)
+            entry.grid(row=row, column=col+1, padx=(5,20), pady=8, sticky="w")
+            entry_values[field] = entry
+
+    create_card(scrollable_frame, "LRV & URV Inputs", ["X (mm)", "Y (mm)", "Z (mm)", "SG1", "SG2", "SG3"])
+    result_label1 = ctk.CTkLabel(scrollable_frame, text="", font=ctk.CTkFont(size=16, weight="bold"), text_color="#00ffcc")
+    result_label1.pack(pady=(20,5))
+
+    create_card(scrollable_frame, "DP Level Inputs", ["DP Value (mbar)", "Level (%)"])
+    result_label2 = ctk.CTkLabel(scrollable_frame, text="", font=ctk.CTkFont(size=16, weight="bold"), text_color="#00ffcc")
+    result_label2.pack(pady=(20,5))
+    result_label3 = ctk.CTkLabel(scrollable_frame, text="", font=ctk.CTkFont(size=16, weight="bold"), text_color="#00ffcc")
+    result_label3.pack(pady=(20,5))
+    result_label4 = ctk.CTkLabel(scrollable_frame, text="", font=ctk.CTkFont(size=16, weight="bold"), text_color="#00ffcc")
+    result_label4.pack(pady=(20,5))
+
+    ctk.CTkButton(scrollable_frame, text="Calculate", command=calculate,
+                  fg_color="#00b38f", hover_color="#00e6b8",
+                  width=250, height=50, corner_radius=12,
+                  font=ctk.CTkFont(size=16, weight="bold")).pack(pady=25)
+
+    ctk.CTkLabel(scrollable_frame, text="DP Level Calculator © 2025 | Developed by Adrianna",
+                 text_color="#777777", font=ctk.CTkFont(size=11)).pack(pady=10)
+
+# === START APP ===
+create_home_page()
+root.mainloop()
