@@ -223,10 +223,10 @@ def create_mass_flowrate_page():
             LT = float(entry_values["Line Temperature (°C)"].get())
             LD = float(entry_values["Line Density (kg/m³)"].get())
             IE = float(entry_values["Isentropic Exponent"].get())
-            PD = float(entry_values["Pipe Diameter (kg/m³)"].get())
+            PD = float(entry_values["Pipe Diameter (mm)"].get())
             PRT = float(entry_values["Pipe Reference\nTemperature (°C)"].get())
             PE = float(entry_values["Pipe Expansion"].get())
-            TD = float(entry_values["Bore Diameter (kg/m³)"].get())
+            TD = float(entry_values["Bore Diameter (mml)"].get())
             TRT = float(entry_values["Bore Reference\nTemperature (°C)"].get())
             TE = float(entry_values["Bore Expansion"].get())
             DC = float(entry_values["Discharge Coefficient"].get())
@@ -277,7 +277,7 @@ def create_mass_flowrate_page():
     scrollable_frame.pack(padx=20, pady=10, fill="both", expand=True)
 
     try:
-        flow_image = ctk.CTkImage(light_image=Image.open(resource_path("Mass Flowrate.png")), size=(400, 220))
+        flow_image = ctk.CTkImage(light_image=Image.open(resource_path("Mass Flowrate.png")), size=(550,260))
         ctk.CTkLabel(scrollable_frame, image=flow_image, text="").pack(pady=(10, 20))
     except Exception as e:
         print("⚠ Mass Flowrate image not found:", e)
@@ -310,12 +310,12 @@ def create_mass_flowrate_page():
         "Isentropic Exponent"
     ]
     pipe_fields = [
-        "Pipe Diameter (kg/m³)",
+        "Pipe Diameter (mm)",
         "Pipe Reference\nTemperature (°C)",
         "Pipe Expansion"
     ]
     bore_fields = [
-        "Bore Diameter (kg/m³)",
+        "Bore Diameter (mm)",
         "Bore Reference\nTemperature (°C)",
         "Bore Expansion",
         "Discharge Coefficient"
@@ -429,7 +429,7 @@ def create_dp_level_page():
 
     # === Formula image + equations ===
     try:
-        formula_img = ctk.CTkImage(light_image=Image.open(resource_path("logo.png")), size=(280, 210))
+        formula_img = ctk.CTkImage(light_image=Image.open(resource_path("DP Level Calculator .png")), size=(450, 280))
         ctk.CTkLabel(scrollable_frame, image=formula_img, text="").pack(pady=(10, 5))
     except Exception as e:
         print(f"⚠ Formula image not found: {e}")
